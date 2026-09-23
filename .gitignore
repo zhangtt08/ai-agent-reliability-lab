@@ -1,0 +1,12 @@
+node_modules/
+data/*.sqlite
+data/*.sqlite-journal
+data/*.sqlite-wal
+.tmp/
+dist/
+artifacts/
+*.log
+.vite/
+coverage/
+e2e/screenshots/
+e2e/report.json

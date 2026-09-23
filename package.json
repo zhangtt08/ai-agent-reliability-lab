@@ -1,0 +1,59 @@
+{
+  "name": "ai-agent-reliability-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI Agent Reliability Lab - local-first platform to test, evaluate, diagnose, compare and gate AI agents.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "tsx apps/server/src/main.ts",
+    "dev:web": "vite --config apps/web/vite.config.ts",
+    "build": "tsc -p tsconfig.json --noEmit && vite build --config apps/web/vite.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest",
+    "test:e2e": "node e2e/run-e2e.mjs",
+    "seed": "tsx scripts/seed.ts",
+    "start": "tsx apps/server/src/main.ts",
+    "reset:db": "tsx scripts/reset-db.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "drizzle-orm": "^0.44.2",
+    "express": "^4.19.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "jsdom": "^25.0.1",
+    "playwright-core": "^1.47.2",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.2"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

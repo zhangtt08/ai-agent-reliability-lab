@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@arl/shared": ["./packages/shared/src/index.ts"],
+      "@arl/persistence": ["./packages/persistence/src/index.ts"],
+      "@arl/providers": ["./packages/providers/src/index.ts"],
+      "@arl/runtime": ["./packages/runtime/src/index.ts"],
+      "@arl/evaluation": ["./packages/evaluation/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/**/*.ts",
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "scripts/**/*.ts",
+    "*.ts"
+  ],
+  "exclude": ["node_modules", "dist", "**/dist", ".tmp"]
+}
