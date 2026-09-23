@@ -7,36 +7,36 @@
 - [x] 建立 `docs/agent/` 十个记忆文件
 - [x] Monorepo 结构（packages/* + apps/*）
 - [x] 依赖安装脚本与本地环境适配
-- [ ] `git init` + 首个 checkpoint commit
-- [ ] 冒烟：`npm test` 能跑起来（空测试集）
+- [x] `git init` + 首个 checkpoint commit
+- [x] 冒烟：`npm test` 全绿（122 项单元测试）
 
 ## Stage 1 — Domain Models + Persistence
 
-- [ ] `packages/shared`：Zod schema（Agent / AgentVersion / PromptVersion / ToolDefinition / Dataset / TestCase / ExpectedOutcome / Evaluator / Metric / Failure / HumanReview / ReleaseGate …）
-- [ ] ID 生成与时间工具
-- [ ] `TraceRedactor`（Secret / 敏感字段脱敏）
-- [ ] `packages/persistence`：SQLite 引擎封装（node:sqlite）
-- [ ] 迁移系统（`migrations/*.sql` + `_migrations` 版本表，禁止删库）
-- [ ] 表：agents / agent_versions / prompt_versions / tool_definitions / datasets / dataset_versions / test_cases
-- [ ] 表：evaluation_runs / case_runs / traces / trace_steps / tool_calls / retrieval_events / model_calls
-- [ ] 表：evaluators / evaluator_sets / evaluation_results / metrics
-- [ ] 表：failures / failure_categories / human_reviews / release_gates / release_decisions / analysis_jobs
-- [ ] Repository 层（不可覆盖历史：版本类表只插入不更新）
-- [ ] 单元测试：schema 校验、迁移幂等、版本不可覆盖
+- [x] `packages/shared`：Zod schema（Agent / AgentVersion / PromptVersion / ToolDefinition / Dataset / TestCase / ExpectedOutcome / Evaluator / Metric / Failure / HumanReview / ReleaseGate …）
+- [x] ID 生成与时间工具
+- [x] `TraceRedactor`（Secret / 敏感字段脱敏）
+- [x] `packages/persistence`：SQLite 引擎封装（node:sqlite）
+- [x] 迁移系统（`migrations/*.sql` + `_migrations` 版本表，禁止删库）
+- [x] 表：agents / agent_versions / prompt_versions / tool_definitions / datasets / dataset_versions / test_cases
+- [x] 表：evaluation_runs / case_runs / traces / trace_steps / tool_calls / retrieval_events / model_calls
+- [x] 表：evaluators / evaluator_sets / evaluation_results / metrics
+- [x] 表：failures / failure_categories / human_reviews / release_gates / release_decisions / analysis_jobs
+- [x] Repository 层（不可覆盖历史：版本类表只插入不更新）
+- [x] 单元测试：schema 校验、迁移幂等、版本不可覆盖
 
 ## Stage 2 — Provider + Agent Runtime
 
-- [ ] `ModelProvider` 接口（generate / generateStructured / usage / latency / modelName）
-- [ ] `MockModelProvider`（确定性、可脚本化）
-- [ ] Provider 注册表（预留 OpenAI / Anthropic / Gemini / OpenAI-compatible / Local）
-- [ ] `AgentRuntime` 接口 → `AgentRunResult { finalOutput, trace, usage, duration, status, error }`
-- [ ] `SimplePromptAgent`
-- [ ] `ToolCallingAgent`（Tool 调用循环 + 最大步数保护）
-- [ ] Tool 执行器 + Fixture Tools（getOrder / searchKnowledge / calculatePrice / createTicket / lookupUser / getBalance / refundOrder）
-- [ ] Tool 调用完整捕获（arguments / validatedArguments / status / outputSummary / error）
-- [ ] 单元测试：runtime 契约、tool 参数校验、最大步数
+- [x] `ModelProvider` 接口（generate / generateStructured / usage / latency / modelName）
+- [x] `MockModelProvider`（确定性、可脚本化）
+- [x] Provider 注册表（预留 OpenAI / Anthropic / Gemini / OpenAI-compatible / Local）
+- [x] `AgentRuntime` 接口 → `AgentRunResult { finalOutput, trace, usage, duration, status, error }`
+- [x] `SimplePromptAgent`
+- [x] `ToolCallingAgent`（Tool 调用循环 + 最大步数保护）
+- [x] Tool 执行器 + Fixture Tools（getOrder / searchKnowledge / calculatePrice / createTicket / lookupUser / getBalance / refundOrder）
+- [x] Tool 调用完整捕获（arguments / validatedArguments / status / outputSummary / error）
+- [x] 单元测试：runtime 契约、tool 参数校验、最大步数
 
-## Stage 3 — Dataset + Test Case
+## Stage 3 — Dataset + Test Case  ← 进行中
 
 - [ ] Dataset / DatasetVersion CRUD
 - [ ] TestCase CRUD（input / context / tags / priority / enabled / expectedOutcome）

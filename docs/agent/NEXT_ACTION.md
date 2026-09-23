@@ -2,35 +2,36 @@
 
 > 新 Agent 读完本文件就应立刻知道该干什么。每次 checkpoint 必须重写本文件。
 
-**Last Completed:** Stage 0 部分完成 —— monorepo 骨架、`docs/agent/*` 记忆体系、依赖安装启动
+**Last Completed:** Stage 2 —— `@arl/providers` + `@arl/runtime` 全部落地，Runtime 冒烟验证通过
+（trace 顺序：retrieval → model_call → tool_call → model_call → output；loop 检测生效；空参数被判 invalid_arguments）
 
-**Current Task:** 完成 Stage 0 收尾，随后进入 Stage 1（Domain Models + Persistence）
+**Current Task:** Stage 3 —— Dataset / TestCase / ExpectedOutcome / 导入导出 / 三个 Mock Dataset 种子数据
 
-**Why:** 先把「可运行 + 可续跑」的地基打好，再写任何业务代码。所有后续 Stage 都依赖 Stage 1 的 domain schema 与 SQLite 持久层。
+**Why:** 评测的一切都建立在「数据集 + 结构化期望」之上。没有 ExpectedOutcome，Evaluator 就只能靠 LLM 猜，
+平台会退化成提示词打分玩具。
 
 **Relevant Files:**
-- `package.json`（根，workspaces）
-- `docs/agent/*`（记忆体系）
-- `packages/shared/src/**`（即将创建）
-- `packages/persistence/src/**`（即将创建）
+- `packages/shared/src/dataset-io.ts`（待创建：JSON/CSV 解析与校验，逐行容错）
+- `packages/persistence/src/repositories/dataset-repo.ts`（已有：createCase / freezeVersion / forkVersion）
+- `scripts/seed.ts`（待创建：三个数据集 + fixture agent versions + evaluator sets + gate）
+- `packages/runtime/src/tools/fixtures.ts`（fixture 数据与知识库）
 
 **Commands To Run:**
 ```bash
-npm install --prefer-offline --no-audit --no-fund --ignore-scripts
-npm run typecheck
-npm test
+node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit
+node node_modules/vitest/vitest.mjs run --reporter=basic
+node node_modules/tsx/dist/cli.mjs scripts/seed.ts --dry
 ```
 
-**Expected Result:** 依赖装完；typecheck 0 error；unit 测试全绿。
+**Expected Result:** 类型 0 error；单测全绿；seed 能建出 3 个数据集（含正常/边界/失败/Critical case）。
 
 **Known Risks:**
-- 本机 npm 慢，必须加 `--prefer-offline`。
-- 禁止 `playwright install`（用户红线，会删旧浏览器）。
-- `better-sqlite3` 原生编译不可用 → 用 `node:sqlite`。
+- 冻结后的 dataset version 不能改 case（数据库触发器）→ 改数据必须 `forkVersion`。
+- `mustContain` 等期望必须能和 fixture 的真实输出对上，否则 stable agent 会「假失败」。
 
 **Do Not Break:**
-- `docs/agent/` 十个记忆文件必须持续维护。
-- 「版本类数据只插入不更新」的不可覆盖约束。
-- Deterministic-first：确定性 evaluator 优先，LLM Judge 仅作补充。
+- Runtime **不得**看到 `expectedOutcome`（RuntimeCase 类型已硬性排除）。
+- 版本类数据只插入不更新。
+- 确定性优先：能规则判定的绝不交给 LLM。
 
-**Next Task After Completion:** Stage 2 — Provider 抽象 + MockModelProvider + AgentRuntime + Fixture Tools。
+**Next Task After Completion:** Stage 4/5 —— Trace 落库 + 确定性 Evaluator 全套（13 个 + RuleJudge）。
