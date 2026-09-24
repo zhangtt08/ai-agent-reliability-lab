@@ -10,3 +10,4 @@ artifacts/
 coverage/
 e2e/screenshots/
 e2e/report.json
+e2e/*.sqlite*

@@ -154,6 +154,12 @@ export function createFailureRepository(driver: SqlDriver) {
   return repo;
 }
 
+const HUMAN_TO_STATUS: Record<HumanVerdict, string> = {
+  pass: 'passed',
+  fail: 'failed',
+  partial: 'partial',
+};
+
 export function createHumanReviewRepository(driver: SqlDriver) {
   const T = 'human_reviews';
   const repo = {
@@ -178,7 +184,8 @@ export function createHumanReviewRepository(driver: SqlDriver) {
         failureCategory: input.failureCategory ?? null,
         machineVerdict: input.machineVerdict,
         machineSnapshot: input.machineSnapshot,
-        overridesMachine: input.machineVerdict !== input.verdict,
+        // 人工三态（pass/fail/partial）与 case 状态（passed/failed/partial）语义映射后再比较
+        overridesMachine: HUMAN_TO_STATUS[input.verdict] !== input.machineVerdict,
         createdAt: nowIso(),
       });
       insertInto(driver, T, record);

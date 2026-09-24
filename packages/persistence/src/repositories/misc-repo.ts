@@ -307,9 +307,10 @@ export function createStatsRepository(driver: SqlDriver) {
                 SUM(CASE WHEN usage_json LIKE '%"costUsd":null%' THEN 0 ELSE 1 END) AS n_cost
          FROM evaluation_runs WHERE status = 'completed'`,
       );
+      // case 端到端耗时的列名是 latency_ms（不是 duration_ms —— 那是 evaluation_runs 的列）
       const latencies = driver
-        .all<{ duration_ms: number }>('SELECT duration_ms FROM case_runs ORDER BY duration_ms ASC')
-        .map((r) => Number(r.duration_ms));
+        .all<{ latency_ms: number }>('SELECT latency_ms FROM case_runs ORDER BY latency_ms ASC')
+        .map((r) => Number(r.latency_ms));
       return {
         avgCostUsd: row?.avg_cost ?? null,
         avgLatencyMs: row?.avg_lat ?? 0,

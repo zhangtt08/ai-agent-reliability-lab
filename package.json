@@ -18,7 +18,7 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:watch": "vitest",
-    "test:e2e": "node e2e/run-e2e.mjs",
+    "test:e2e": "vite build --config apps/web/vite.config.ts && node e2e/run-e2e.mjs",
     "seed": "tsx scripts/seed.ts",
     "start": "tsx apps/server/src/main.ts",
     "reset:db": "tsx scripts/reset-db.ts"

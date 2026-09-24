@@ -60,6 +60,7 @@ export interface ExecuteRunOptions {
   provider?: ModelProvider;
   baselineRunId?: string | null;
   triggeredBy?: string;
+  gateId?: string | null;
   /** 取消信号：返回 true 时停止后续 case */
   shouldCancel?: () => boolean;
   onProgress?: (done: number, total: number, message: string) => void;
@@ -425,7 +426,7 @@ export async function executeEvaluationRun(store: Store, options: ExecuteRunOpti
   });
 
   // 5) 回归 / 门禁 / 建议
-  const analysis = analyzeRun(store, run.id, { metrics, failures: allFailures });
+  const analysis = analyzeRun(store, run.id, { metrics, failures: allFailures, gateId: options.gateId ?? null });
 
   store.jobs.finish(job.id, { status: cancelled ? 'cancelled' : 'completed', runId: run.id });
   store.search.index('run', run.id, `${agent.name} v${version.version} · ${dataset.name}`, `通过率 ${(metrics.find((m) => m.metricKey === 'task_success_rate')?.value ?? 0) * 100}%`, [agent.name]);

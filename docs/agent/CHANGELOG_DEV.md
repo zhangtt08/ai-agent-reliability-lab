@@ -43,3 +43,10 @@
   2) 证据 id 必须沿用 collector 生成的值（repository 曾重新生成导致引用断裂）；
   3) 意图规则需分层（实体规则优先于"为什么/怎么"这类泛问词），否则"我的订单为什么重复扣款"会被误路由；
   4) LLM Judge 的 groundedness 语义与规则版幻觉检测对齐：惩罚"无出处的硬事实"，而不是"没有复读上下文"。
+
+### Stage 12~16 — Dashboard / API / 集成 / E2E / 文档
+- Express API 全量端点（overview / agents+versions+prompts+diff / datasets+import+export / runs+jobs / case+trace / review / compare / failures / suggestions+prompt-candidates / gates+decisions / search / providers / evaluators / rubrics）。
+- Web：Dashboard、Agents、AgentDetail（版本状态机 + Prompt diff）、Datasets、DatasetDetail（冻结/Fork/导入导出）、Runs（启动评测 + 进度）、RunDetail（指标卡片带 definition、Gate 逐条解释、用例筛选、建议、可复现性快照）、CaseDetail（评测结果+证据、失败归因、Trace Viewer 按类型过滤展开、人工复核表单）、Compare（指标差异 + Fixed/Regressed + 失败形态变化）、Failures、Reviews（队列+一致性矩阵）、Release（门禁规则 + 决策历史 + Prompt 候选采纳）、Search（FTS5）。
+- 集成测试 17 项 + E2E 12 步（复用本机 chromium-1243，截图 10 张）。
+- **修掉的真 bug**：stats 查询用了不存在的 `case_runs.duration_ms`（应为 latency_ms）；人工复核 verdict 与 case status 枚举不一致导致 overridesMachine 误判。
+- 最终验证：tsc 0 error；单测 174/174；集成 17/17；E2E 12/12；dogfood stable 15/15 + 7 类缺陷全检出。

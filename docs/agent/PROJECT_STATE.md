@@ -7,22 +7,27 @@
 | Project Name | AI Agent Reliability Lab（AI 智能体评测与可靠性平台） |
 | Repository Root | `C:\Users\Administrator\Desktop\AI-Agent-Reliability-Lab` |
 | Current Version | 0.1.0 |
-| Current Stage | Stage 3 — Dataset + Test Case（进行中） |
-| Current Objective | 建立三个真实感 Mock Dataset + ExpectedOutcome 结构化期望 + JSON/CSV 导入导出 |
-| Overall Status | IN_PROGRESS |
+| Current Stage | Stage 16 — Recovery Audit + Documentation（已完成，等待验收） |
+| Current Objective | P0 全部交付：Final Acceptance 条目已逐项达成（见 README 与 EVAL_STATUS） |
+| Overall Status | COMPLETE (P0) |
 | Last Updated | 2026-09-23 (session 1) |
 
 ## Completed Modules
 
 - Stage 0：持久化项目记忆（`docs/agent/*`）、monorepo、依赖、git checkpoint
-- Stage 1：`@arl/shared`（Zod 领域模型 / 失败分类法 / JSON-Schema 子集校验 / TraceRedactor）、
-  `@arl/persistence`（node:sqlite 驱动、迁移 + 不可覆盖触发器、typed repositories、FTS5 搜索）
-- Stage 2：`@arl/providers`（ModelProvider 抽象 / MockModelProvider / 确定性 fixture 策略 / Judge 替身 / OpenAI-compatible 真实实现）、
-  `@arl/runtime`（ToolCallingAgent / SimplePromptAgent / RAG 检索 / Tool 执行器 / Trace 采集器 / loop guard / retry / 硬超时）
+- Stage 1：`@arl/shared` + `@arl/persistence`（领域模型 / 迁移 + 不可覆盖触发器 / repositories / FTS5）
+- Stage 2：`@arl/providers` + `@arl/runtime`（Mock Provider / fixture 策略 / Judge 替身 / RAG / Trace 采集 / loop guard）
+- Stage 3~8：Dataset IO、19 个确定性 Evaluator、RuleJudge、18 个指标、确定性失败归因、回归检测、Release Gate、Run Pipeline
+- Stage 9~11：LLM Judge（Zod 强校验）、Human Review（与机器结论并存）、版本对比、Baseline、Gate fixture
+- Stage 12：Web 全部页面（Dashboard / Agents / Datasets / Runs / Case+Trace Viewer / Compare / Failures / Reviews / Release / Search）
+- Stage 13：规则化优化建议（带证据）+ Prompt 候选（显式采纳）
+- Stage 14：集成测试 17 项（integrity / regression+gate / human-review / API 主流程）+ E2E 12 步（真 Chromium）
+- Stage 15：脱敏前置、错误处理、并发上限、分页查询
+- Stage 16：README + Recovery Drill + Dogfood（stable 15/15；7 类缺陷全被检出）
 
 ## Current Module
 
-- Stage 3：Dataset / TestCase / ExpectedOutcome / 导入导出 / Golden Dataset
+- 无（P0 交付完成；续作请读 NEXT_ACTION.md 的 P2 清单）
 
 ## Pending Modules
 
@@ -36,11 +41,11 @@
 
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
-| Latest Build Status | NOT_RUN | 前端尚未建立；`tsc --noEmit` 通过 |
-| Latest Unit Test Status | PASS | 122/122（5 个测试文件） |
-| Latest Integration Status | NOT_RUN | 集成测试待 Stage 7 建立 |
-| Latest E2E Status | NOT_RUN | Playwright（复用本机 Chromium）待 Stage 14 |
-| Latest Evaluation Status | PARTIAL | Runtime 冒烟已验证：loop 检测 / invalid_arguments / 幻觉注入 / 限流重试链路；正式 EVAL_STATUS 见文件 |
+| Latest Build Status | PASS | tsc 0 error；vite build 228KB |
+| Latest Unit Test Status | PASS | 174/174（6 个测试文件） |
+| Latest Integration Status | PASS | 17/17（4 个测试文件） |
+| Latest E2E Status | PASS | 12/12 步骤（截图落 e2e/screenshots/） |
+| Latest Evaluation Status | PASS | Dogfood：stable 15/15；7 类缺陷全被检出；回归+严格门禁按预期触发（见 EVAL_STATUS.md） |
 
 ## Current Git State
 
@@ -57,7 +62,7 @@
 
 ## Last Successful Checkpoint
 
-- `ba507cd`（Stage 0+1）
+- 见 `git log`：bootstrap → runtime → evaluation → final（P0 交付）
 
 ## Next Action
 
