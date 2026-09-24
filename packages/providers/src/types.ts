@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod';
+import type { ZodTypeAny, infer as ZodInfer } from 'zod';
 import type { ModelConfig, ProviderInfo, RetrievedDocument, ToolDefinition } from '@arl/shared';
 
 export interface ChatMessage {
@@ -112,7 +112,8 @@ export interface ModelProvider {
   readonly id: string;
   readonly info: ProviderInfo;
   generate(req: GenerateRequest): Promise<GenerateResponse>;
-  generateStructured<T>(req: GenerateRequest, schema: ZodType<T>): Promise<StructuredGenerateResponse<T>>;
+  /** 泛型按 schema 推导**输出**类型（带 default() 的字段在输出中一定存在） */
+  generateStructured<S extends ZodTypeAny>(req: GenerateRequest, schema: S): Promise<StructuredGenerateResponse<ZodInfer<S>>>;
   stream?(req: GenerateRequest): AsyncIterable<StreamChunk>;
 }
 

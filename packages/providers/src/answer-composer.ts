@@ -98,7 +98,9 @@ export function composeAnswer(ctx: MockTurnContext, style: 'json' | 'text'): Com
   }
 
   if (lines.length === 0) {
-    lines.push('我已收到你的问题，但当前没有可用的工具或知识库数据来给出确切结论。');
+    lines.push(
+      '我已收到你的问题，但目前缺少足够的信息来处理（例如订单号、用户 ID 或具体问题描述）。请补充这些信息后，我再为你处理。',
+    );
   }
 
   const advice = ctx.observations.some((o) => o.toolName === 'refundOrder')
@@ -125,14 +127,20 @@ export interface ToolPick {
 }
 
 const KEYWORD_TO_TOOL: { re: RegExp; tool: string; reason: string }[] = [
+  // 顺序即优先级，分三层：
+  //  第 1 层：高风险动作（只有明确确认才允许退款 —— 护栏，不是偏好）
+  //  第 2 层：具体实体/主题意图（订单、余额、工单、价格、会员资料、知识主题词）
+  //  第 3 层：泛化疑问词（为什么/怎么/多久）—— 只在前两层都没有命中时兜底，
+  //           否则"我的订单 ORD-1001 为什么重复扣款"会被错误地路由去查知识库。
   { re: /(确认退款|同意退款|立即退款|confirm refund)/i, tool: 'refundOrder', reason: '输入包含明确的退款确认语句' },
-  { re: /(退款|refund)/i, tool: 'searchKnowledge', reason: '退款类问题先查政策，不直接执行退款' },
+  { re: /(权益|政策|规则|知识|说明|标准|流程|依据|policy)/i, tool: 'searchKnowledge', reason: '输入命中具体知识主题词' },
   { re: /(ORD-\d+|订单|扣款|order)/i, tool: 'getOrder', reason: '输入涉及订单号或订单状态' },
   { re: /(余额|balance|账户剩余)/i, tool: 'getBalance', reason: '输入询问账户余额' },
   { re: /(工单|ticket|升级人工|客服跟进)/i, tool: 'createTicket', reason: '输入需要创建工单' },
   { re: /(价格|报价|运费|多少(钱|元)|计算|price)/i, tool: 'calculatePrice', reason: '输入需要价格计算' },
   { re: /(用户|会员|等级|user|profile)/i, tool: 'lookupUser', reason: '输入需要查询用户信息' },
-  { re: /(政策|规则|多久|怎么|为什么|如何|知识|说明|标准|流程|refund|policy)/i, tool: 'searchKnowledge', reason: '输入属于政策/知识类问题' },
+  { re: /(退款|refund)/i, tool: 'searchKnowledge', reason: '退款类问题先查政策，不直接执行退款' },
+  { re: /(多久|怎么|为什么|如何|可不可以|能不能|怎么办)/i, tool: 'searchKnowledge', reason: '泛化疑问句，兜底检索知识库' },
 ];
 
 export function pickToolForInput(input: string, tools: ToolDefinition[]): ToolPick {
@@ -185,9 +193,13 @@ export function extractArgsForTool(tool: ToolDefinition, input: string): Record<
     } else if (/(confirm|approved|agree)/.test(lower)) {
       args[key] = confirmed;
     } else if (/(quantity|qty|count)/.test(lower)) {
-      args[key] = Number(/(\d+)\s*(件|个|份|qty)?/i.exec(input)?.[1] ?? 1);
+      // 优先读"3 件"这类带量词的数字
+      args[key] = Number(/(\d+)\s*(件|个|份|台|箱)/.exec(input)?.[1] ?? /(\d+)/.exec(input)?.[1] ?? 1);
     } else if (/(amount|price|total|weight)/.test(lower)) {
-      args[key] = Number(/(\d+(?:\.\d+)?)/.exec(input)?.[1] ?? 0);
+      // 优先读"45 元"这类带金额单位的数字，避免把数量误当成单价
+      args[key] = Number(/(\d+(?:\.\d+)?)\s*(?:元|块|rmb|¥)/i.exec(input)?.[1] ?? /(\d+(?:\.\d+)?)/.exec(input)?.[1] ?? 0);
+    } else if (/(tier|level|grade)/.test(lower)) {
+      args[key] = /(gold|金卡|白金)/i.test(input) ? 'gold' : 'standard';
     } else if (def.type === 'number' || def.type === 'integer') {
       args[key] = Number(/(\d+(?:\.\d+)?)/.exec(input)?.[1] ?? 0);
     } else if (def.type === 'boolean') {

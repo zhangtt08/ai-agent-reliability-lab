@@ -4,7 +4,7 @@
 | --- | --- | --- | --- | --- | --- |
 | Typecheck | `npx tsc -p tsconfig.json --noEmit` | PASS | - | 0 | - |
 | Build | `npm run build` | NOT_RUN | - | - | 前端尚未建立 |
-| Unit | `npm run test:unit` | PASS | 122 | 0 | - |
+| Unit | `npm run test:unit` | PASS | 174 | 0 | - |
 | Integration | `npm run test:integration` | NOT_RUN | - | - | 待 Stage 7 |
 | E2E | `npm run test:e2e` | NOT_RUN | - | - | 待 Stage 14 |
 
@@ -12,11 +12,12 @@
 
 | 文件 | 用例数 | 覆盖 |
 | --- | --- | --- |
-| `tests/unit/shared-foundation.test.ts` | 14 | JSON Schema 子集校验 / JSON 工具 / ExpectedOutcome schema |
+| `tests/unit/shared-foundation.test.ts` | 14 | JSON Schema 子集校验 / JSON 工具 / ExpectedOutcome schema / 数据集导入导出 |
 | `tests/unit/redaction.test.ts` | 11 | TraceRedactor：凭据正则、结构脱敏、三种隐私策略 |
 | `tests/unit/persistence-contract.test.ts` | 32 | Drizzle schema ↔ 迁移 DDL 逐列契约、迁移幂等与 checksum |
 | `tests/unit/persistence-write-contract.test.ts` | 56 | 领域模型字段 ↔ 真实数据库列（INSERT 计划可执行） |
 | `tests/unit/persistence-immutability.test.ts` | 9 | 版本不可覆盖、dataset 冻结、trace 只增改 |
+| `tests/unit/evaluation.test.ts` | 52 | 19 个 evaluator 正反例 / RuleJudge / 指标精确断言 / 失败归因 / 回归检测 / 建议 |
 
 ## 说明
 

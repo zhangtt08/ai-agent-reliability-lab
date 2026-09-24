@@ -301,9 +301,9 @@ CREATE TABLE IF NOT EXISTS trace_steps (
   duration_ms    INTEGER NOT NULL DEFAULT 0,
   summary        TEXT NOT NULL DEFAULT '',
   payload_json   TEXT NOT NULL DEFAULT '{}',
-  model_call_id  TEXT,
-  tool_call_id   TEXT,
-  retrieval_id   TEXT
+  model_call_id  TEXT REFERENCES model_calls(id) DEFERRABLE INITIALLY DEFERRED,
+  tool_call_id   TEXT REFERENCES tool_calls(id) DEFERRABLE INITIALLY DEFERRED,
+  retrieval_id   TEXT REFERENCES retrieval_events(id) DEFERRABLE INITIALLY DEFERRED
 );
 CREATE INDEX IF NOT EXISTS idx_trace_steps_trace ON trace_steps(trace_id, seq);
 CREATE INDEX IF NOT EXISTS idx_trace_steps_type ON trace_steps(trace_id, type);
@@ -311,7 +311,7 @@ CREATE INDEX IF NOT EXISTS idx_trace_steps_type ON trace_steps(trace_id, type);
 CREATE TABLE IF NOT EXISTS model_calls (
   id              TEXT PRIMARY KEY,
   trace_id        TEXT NOT NULL REFERENCES traces(id),
-  step_id         TEXT NOT NULL REFERENCES trace_steps(id),
+  step_id         TEXT NOT NULL REFERENCES trace_steps(id) DEFERRABLE INITIALLY DEFERRED,
   provider        TEXT NOT NULL,
   model           TEXT NOT NULL,
   input_tokens    INTEGER NOT NULL DEFAULT 0,
@@ -332,7 +332,7 @@ CREATE INDEX IF NOT EXISTS idx_model_calls_trace ON model_calls(trace_id);
 CREATE TABLE IF NOT EXISTS tool_calls (
   id                     TEXT PRIMARY KEY,
   trace_id               TEXT NOT NULL REFERENCES traces(id),
-  step_id                TEXT NOT NULL REFERENCES trace_steps(id),
+  step_id                TEXT NOT NULL REFERENCES trace_steps(id) DEFERRABLE INITIALLY DEFERRED,
   seq                    INTEGER NOT NULL DEFAULT 0,
   tool_name              TEXT NOT NULL,
   arguments_json         TEXT NOT NULL DEFAULT '{}',
@@ -354,7 +354,7 @@ CREATE INDEX IF NOT EXISTS idx_tool_calls_name ON tool_calls(tool_name, status);
 CREATE TABLE IF NOT EXISTS retrieval_events (
   id                 TEXT PRIMARY KEY,
   trace_id           TEXT NOT NULL REFERENCES traces(id),
-  step_id            TEXT NOT NULL REFERENCES trace_steps(id),
+  step_id            TEXT NOT NULL REFERENCES trace_steps(id) DEFERRABLE INITIALLY DEFERRED,
   query              TEXT NOT NULL DEFAULT '',
   rewritten_query    TEXT NOT NULL DEFAULT '',
   mode               TEXT NOT NULL DEFAULT 'keyword',

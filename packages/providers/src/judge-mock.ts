@@ -20,7 +20,8 @@ function containsAll(haystack: string, needles: string[]): { hit: number; missed
  * 真实 provider 接入后，同一段 prompt 会交给真实模型。
  */
 function mockJudgePolicy(ctx: MockTurnContext): MockTurnDecision {
-  const joined = ctx.messages.map((m) => m.content).join('\n');
+  // payload 既可能在 systemPrompt（真实 provider 的常见做法），也可能在消息里
+  const joined = [ctx.systemPrompt, ...ctx.messages.map((m) => m.content)].join('\n');
   const startIdx = joined.indexOf(JUDGE_PAYLOAD_START);
   const endIdx = joined.indexOf(JUDGE_PAYLOAD_END);
   if (startIdx < 0 || endIdx <= startIdx) {
@@ -61,17 +62,30 @@ function mockJudgePolicy(ctx: MockTurnContext): MockTurnDecision {
 
   const required = containsAll(output, p.mustContain ?? []);
   const forbidden = (p.mustNotContain ?? []).filter((n) => normalize(output).includes(normalize(n)));
-  const overlapTerms = Array.from(new Set(`${p.expectedText ?? ''} ${(p.context ?? []).join(' ')}`.match(/[\u4e00-\u9fff]{2,}|[A-Za-z]{4,}/g) ?? []));
+  const normalizedContext = normalize(contextText);
+  const overlapTerms = Array.from(new Set(contextText.match(/[\u4e00-\u9fff]{2,}|[A-Za-z]{4,}/g) ?? []));
   const overlapHit = overlapTerms.filter((t) => normalize(output).includes(normalize(t))).length;
   const overlapRatio = overlapTerms.length > 0 ? overlapHit / overlapTerms.length : 0;
   const requiredRatio = (p.mustContain ?? []).length > 0 ? required.hit / (p.mustContain ?? []).length : 1;
   const lengthOk = normalize(output).length >= Math.min(20, normalize(p.expectedText ?? '').length || 20) ? 1 : 0.5;
 
+  // groundedness 的语义与平台的规则版幻觉检测保持一致：
+  // 惩罚的是「上下文不支持的硬事实/承诺」，而不是"没有复读上下文"。
+  // 因此像"请补充订单号"这种追问，只要不编造事实就该得满分。
+  const facts = [...output.matchAll(/(\d+(?:\.\d+)?)\s*(元|块|天|小时|分钟|个工作日|%|次|件|折)/g)].map((m) => normalize(m[0]));
+  const missingFacts = facts.filter((f) => !normalizedContext.includes(f));
+  const commits = [...output.matchAll(/(承诺|保证|一定|必然|全额|100%|立即|马上|已自动|无条件)/g)]
+    .map((m) => m[0])
+    .filter((c) => !normalizedContext.includes(normalize(c)));
+  const unsupportedClaims = missingFacts.length + commits.length;
+
+  const nextStepWords = /(建议|下一步|补充|提供|可以为你|请提供|您可以)/;
   const raw: Record<string, number> = {
     correctness: Math.min(1, requiredRatio * 0.7 + overlapRatio * 0.3),
-    groundedness: overlapRatio > 0 ? Math.min(1, overlapRatio + 0.2) : 0.2,
+    groundedness: unsupportedClaims === 0 ? 1 : 0.2,
     completeness: Math.min(1, requiredRatio * 0.6 + lengthOk * 0.4),
     policy_compliance: forbidden.length === 0 ? 1 : 0.2,
+    helpfulness: nextStepWords.test(output) ? 1 : 0.5,
   };
 
   const rubric = p.rubric ?? [];
@@ -87,7 +101,9 @@ function mockJudgePolicy(ctx: MockTurnContext): MockTurnDecision {
       c.key === 'correctness'
         ? `必需关键词命中 ${required.hit}/${(p.mustContain ?? []).length}${required.missed.length ? `，缺失：${required.missed.join('、')}` : ''}`
         : c.key === 'groundedness'
-          ? `与期望/上下文词面重合率 ${(overlapRatio * 100).toFixed(0)}%`
+          ? unsupportedClaims === 0
+            ? '未发现无出处的硬事实或承诺'
+            : `${unsupportedClaims} 处断言在上下文中无出处`
           : c.key === 'policy_compliance'
             ? forbidden.length === 0
               ? '未出现禁止内容'
@@ -113,7 +129,6 @@ function mockJudgePolicy(ctx: MockTurnContext): MockTurnDecision {
     criteriaScores,
   };
 
-  void contextText;
   return { kind: 'final', text: JSON.stringify(verdict, null, 2), latencyMs: 90, reasoning: '确定性 rubric 打分' };
 }
 

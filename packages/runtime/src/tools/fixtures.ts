@@ -209,11 +209,11 @@ export function fixtureToolDefinitions(): ToolDefinition[] {
       inputSchema: {
         type: 'object',
         properties: {
-          amount: { type: 'number', description: '单件金额' },
-          quantity: { type: 'integer', description: '数量，默认 1' },
-          tier: { type: 'string', description: '会员等级：standard / gold' },
+          amount: { type: 'number', minimum: 0, description: '单件金额（元）' },
+          quantity: { type: 'integer', minimum: 1, description: '数量' },
+          tier: { type: 'string', enum: ['standard', 'gold'], description: '会员等级' },
         },
-        required: ['amount'],
+        required: ['amount', 'quantity'],
       },
       tags: ['fixture', 'pricing'],
     }),

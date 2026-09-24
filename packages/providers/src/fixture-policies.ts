@@ -19,6 +19,21 @@ export const heuristicPolicy: MockPolicy = (ctx: MockTurnContext) => {
         reasoning: pick.reason,
       };
     }
+    // 输入过短且没有任何可执行意图时，正确的做法是追问，而不是拿无关检索内容硬答
+    if (ctx.caseInput.trim().length < 10) {
+      const clarification = {
+        answer:
+          '我已收到你的问题，但目前缺少足够的信息来处理（例如订单号、用户 ID 或具体问题描述）。请补充这些信息后，我再为你处理。',
+        confidence: 0.2,
+        sources: [],
+      };
+      return {
+        kind: 'final',
+        text: style === 'json' ? JSON.stringify(clarification, null, 2) : clarification.answer,
+        latencyMs: 80,
+        reasoning: '输入缺少可执行意图，请求用户补充信息',
+      };
+    }
     return { kind: 'final', text: composeAnswer(ctx, style).text, latencyMs: 100, reasoning: '无匹配工具，直接作答' };
   }
 
@@ -111,10 +126,14 @@ export const fixturePolicies: Record<string, MockPolicy> = {
     return { kind: 'final', text: `${base}\n${fabricated}`, latencyMs: 130, reasoning: '追加了无依据的承诺' };
   },
 
-  /** H：回归版本 V2 —— 只在「重复扣款」类问题上退步，其余与 stable 一致 */
+  /**
+   * H：回归版本 V2 —— 只在「ORD-1001 的重复扣款咨询」这一个意图上退步（跳过 getOrder 直接作答），
+   * 其余行为与 stable 完全一致。用于验证回归检测能精确定位到「哪条用例退步了」，
+   * 而不是整批崩坏（那更像是坏部署，不是回归）。
+   */
   'regression-v2-agent': (ctx) => {
-    if (/重复扣款/.test(ctx.caseInput) && ctx.observations.length === 0) {
-      return { kind: 'final', text: '请稍后重试，我们已记录你的问题。', latencyMs: 100, reasoning: 'V2 未调用 getOrder 直接作答' };
+    if (/为什么重复扣款/.test(ctx.caseInput) && ctx.observations.length === 0) {
+      return { kind: 'final', text: '请稍后重试，我们已记录你的问题。', latencyMs: 100, reasoning: 'V2 在该意图上未调用 getOrder 直接作答' };
     }
     return heuristicPolicy(ctx);
   },
@@ -125,13 +144,21 @@ export const fixturePolicies: Record<string, MockPolicy> = {
     return { ...decision, latencyMs: 900 };
   },
 
-  /** J：不稳定的 provider —— 第一次调用命中限流，验证重试策略不会把基础设施故障当成 Agent 失败 */
-  'flaky-provider-agent': (ctx) => {
-    if (ctx.metadata.callIndex === 0 && ctx.observations.length === 0) {
-      return { kind: 'provider_error', failure: 'rate_limit', message: '429 rate limit exceeded (mock)' };
-    }
-    return heuristicPolicy(ctx);
-  },
+  /**
+   * J：不稳定的 provider —— 每个**请求**第一次调用命中限流，验证重试策略
+   * 不会把基础设施故障当成 Agent 失败。重试发生在同一个请求对象上，
+   * 因此用 WeakSet 标记已触发过限流的请求，第二次放行。
+   */
+  'flaky-provider-agent': (() => {
+    const rateLimited = new WeakSet<object>();
+    return (ctx: MockTurnContext) => {
+      if (ctx.metadata.callIndex === 0 && ctx.observations.length === 0 && !rateLimited.has(ctx.metadata)) {
+        rateLimited.add(ctx.metadata);
+        return { kind: 'provider_error', failure: 'rate_limit', message: '429 rate limit exceeded (mock)' };
+      }
+      return heuristicPolicy(ctx);
+    };
+  })(),
 };
 
 export function resolvePolicy(fixtureId: string | undefined, policies: Record<string, MockPolicy>): MockPolicy {

@@ -554,7 +554,7 @@ export const EvaluationRunSchema = z.object({
   failed: z.number().int().nonnegative().default(0),
   partial: z.number().int().nonnegative().default(0),
   errored: z.number().int().nonnegative().default(0),
-  usage: RunUsageSchema,
+  usage: RunUsageSchema.default({ inputTokens: 0, outputTokens: 0, totalTokens: 0, costUsd: null, costSource: 'unknown' }),
   durationMs: z.number().nonnegative().default(0),
   baselineRunId: z.string().nullable().default(null),
   isBaseline: z.boolean().default(false),

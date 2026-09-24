@@ -1,5 +1,5 @@
 import type { ProviderInfo } from '@arl/shared';
-import type { ZodType } from 'zod';
+import type { ZodTypeAny, infer as ZodInfer } from 'zod';
 import { extractJson } from '@arl/shared';
 import { builtinPolicies, MOCK_JUDGE_FIXTURE_ID } from './judge-mock';
 import { resolvePolicy } from './fixture-policies';
@@ -35,6 +35,8 @@ export interface MockProviderOptions {
   baseLatencyMs?: number;
   /** 允许单次延迟上限，避免测试变慢 */
   maxLatencyMs?: number;
+  /** 延迟缩放：测试/dogfood 时设为 0.05 可以大幅提速，同时保留相对快慢关系 */
+  latencyScale?: number;
 }
 
 export interface MockModelProvider extends ModelProvider {
@@ -59,6 +61,7 @@ export function createMockModelProvider(options: MockProviderOptions = {}): Mock
   const id = options.id ?? 'mock';
   const baseLatencyMs = options.baseLatencyMs ?? 10;
   const maxLatencyMs = options.maxLatencyMs ?? 1_200;
+  const latencyScale = options.latencyScale ?? 1;
   const policies: Record<string, MockPolicy> = { ...builtinPolicies, ...(options.policies ?? {}) };
 
   const info: ProviderInfo = {
@@ -92,7 +95,7 @@ export function createMockModelProvider(options: MockProviderOptions = {}): Mock
         throw new ProviderRequestError(decision.failure, decision.message);
       }
 
-      const latency = Math.min(maxLatencyMs, decision.latencyMs ?? baseLatencyMs);
+      const latency = Math.min(maxLatencyMs, Math.round((decision.latencyMs ?? baseLatencyMs) * latencyScale));
       await sleep(latency);
 
       const inputText = serializeRequestInput(req);
@@ -120,7 +123,7 @@ export function createMockModelProvider(options: MockProviderOptions = {}): Mock
      * 结构化输出：Zod 校验 + 一次修复重试；仍失败则显式 fallback（fallbackUsed=true），
      * 绝不静默吞掉解析错误。
      */
-    async generateStructured<T>(req: GenerateRequest, schema: ZodType<T>): Promise<StructuredGenerateResponse<T>> {
+    async generateStructured<S extends ZodTypeAny>(req: GenerateRequest, schema: S): Promise<StructuredGenerateResponse<ZodInfer<S>>> {
       const attempt = async (extra?: string): Promise<{ raw: string; usage: ReturnType<typeof computeUsage>; latencyMs: number; costUsd: number | null; costSource: ReturnType<typeof computeCost>['costSource'] }> => {
         const messages = extra
           ? [...req.messages, { role: 'user' as const, content: `${extra}\n只输出符合 schema 的 JSON，不要任何解释文字。` }]
@@ -177,7 +180,7 @@ export function createMockModelProvider(options: MockProviderOptions = {}): Mock
   return provider;
 }
 
-function parseStructured<T>(raw: string, schema: ZodType<T>): { ok: true; value: T } | { ok: false; error: string } {
+function parseStructured<S extends ZodTypeAny>(raw: string, schema: S): { ok: true; value: ZodInfer<S> } | { ok: false; error: string } {
   const extracted = extractJson<unknown>(raw);
   if (!extracted.ok) return { ok: false, error: `未找到 JSON：${extracted.error}` };
   const validated = schema.safeParse(extracted.value);

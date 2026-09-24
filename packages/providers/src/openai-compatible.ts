@@ -1,5 +1,5 @@
 import { extractJson } from '@arl/shared';
-import type { ZodType } from 'zod';
+import type { ZodTypeAny, infer as ZodInfer } from 'zod';
 import {
   computeCost,
   computeUsage,
@@ -142,14 +142,14 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions)
       };
     },
 
-    async generateStructured<T>(req: GenerateRequest, schema: ZodType<T>): Promise<StructuredGenerateResponse<T>> {
+    async generateStructured<S extends ZodTypeAny>(req: GenerateRequest, schema: S): Promise<StructuredGenerateResponse<ZodInfer<S>>> {
       const res = await call({ ...req, responseFormat: 'json' });
       const extracted = extractJson<unknown>(res.text);
       const validated = extracted.ok ? schema.safeParse(extracted.value) : null;
-      const ok = Boolean(validated?.success);
+      const ok = Boolean(validated && validated.success);
       const cost = computeCost(res.usage, req.metadata.providerPricing ?? null);
       return {
-        value: ok ? (validated!.data as T) : null,
+        value: ok ? (validated!.data as ZodInfer<S>) : null,
         raw: res.text,
         parseAttempts: 1,
         fallbackUsed: !ok,

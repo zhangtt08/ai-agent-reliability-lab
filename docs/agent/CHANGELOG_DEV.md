@@ -28,3 +28,18 @@
   ToolCallingAgent（RAG → model ↔ tool 循环 → output，含 loop guard / 步数 / 工具数 / 时间预算四重保护）、
   SimplePromptAgent、runtime 注册表、硬超时包装。
 - 冒烟验证：trace 顺序正确；loop 在 3 次相同调用后被判定并终止；空订单号被判 `invalid_arguments`；幻觉文本成功注入。
+
+### Stage 3~8 — Dataset / Evaluators / Metrics / Pipeline / Failure / Regression / Gate
+- `dataset-io`：JSON/CSV 导入导出（RFC4180 解析器、逐行校验、坏行不炸整批）。
+- `@arl/evaluation`：19 个内置确定性 evaluator + RuleJudge（all/any/weighted + blocking 语义） +
+  18 个带 definition 的指标 + 确定性失败归因（12 级证据强度递减） + 回归检测（用例/指标/延迟/成本） +
+  Release Gate（PASS/FAIL/BLOCKED/UNKNOWN 四态 + 逐条解释） + LLM Judge（Zod 强校验） + 规则化优化建议（必须带证据）。
+- Run Pipeline：有限并发池、case 级错误隔离、可复现性快照、进度任务、失败归因落库、回归/门禁/建议后处理。
+- 种子数据：10 个 fixture agent（含回归 V2 / 限流 / 慢速）+ 3 个 golden 数据集（15 用例）+ 5 个评测集 + 2 个门禁。
+- **Dogfood 实测**（scripts/dogfood.ts）：stable 15/15 全绿；7 类缺陷 agent 全部被对应 evaluator 检出；
+  限流 fixture 被重试策略正确吸收；回归 V2 精确检出 1 条用例回归；严格门禁(95%)对 V2 判 FAIL。
+- **踩坑与修复**：
+  1) traces ↔ steps/calls 互引用外键 → 改 DEFERRABLE INITIALLY DEFERRED + createBundle 单事务落证据；
+  2) 证据 id 必须沿用 collector 生成的值（repository 曾重新生成导致引用断裂）；
+  3) 意图规则需分层（实体规则优先于"为什么/怎么"这类泛问词），否则"我的订单为什么重复扣款"会被误路由；
+  4) LLM Judge 的 groundedness 语义与规则版幻觉检测对齐：惩罚"无出处的硬事实"，而不是"没有复读上下文"。

@@ -373,50 +373,73 @@ export function createTraceRepository(driver: SqlDriver) {
   const RV = 'retrieval_events';
 
   const repo = {
-    createTrace(trace: Omit<Trace, 'id' | 'createdAt'> & { createdAt?: string }): Trace {
-      const record: Trace = TraceSchema.parse({ ...trace, id: ids.trace(), createdAt: trace.createdAt ?? nowIso() });
+    createTrace(trace: Omit<Trace, 'id' | 'createdAt'> & { id?: string; createdAt?: string }): Trace {
+      // 外部（runtime collector）已生成 id 且被 step/子表引用 —— 必须原样保留，否则引用会断裂
+      const record: Trace = TraceSchema.parse({ ...trace, id: trace.id ?? ids.trace(), createdAt: trace.createdAt ?? nowIso() });
       insertInto(driver, TR, record);
       return record;
     },
 
-    createSteps(steps: Omit<TraceStep, 'id'>[]): TraceStep[] {
+    createSteps(steps: (Omit<TraceStep, 'id'> & { id?: string })[]): TraceStep[] {
       return driver.transaction(() =>
         steps.map((s) => {
-          const record: TraceStep = TraceStepSchema.parse({ ...s, id: ids.traceStep() });
+          const record: TraceStep = TraceStepSchema.parse({ ...s, id: s.id ?? ids.traceStep() });
           insertInto(driver, ST, record);
           return record;
         }),
       );
     },
 
-    createModelCalls(calls: Omit<ModelCall, 'id'>[]): ModelCall[] {
+    createModelCalls(calls: (Omit<ModelCall, 'id'> & { id?: string })[]): ModelCall[] {
       return driver.transaction(() =>
         calls.map((c) => {
-          const record: ModelCall = ModelCallSchema.parse({ ...c, id: ids.modelCall() });
+          const record: ModelCall = ModelCallSchema.parse({ ...c, id: c.id ?? ids.modelCall() });
           insertInto(driver, MC, record);
           return record;
         }),
       );
     },
 
-    createToolCalls(calls: Omit<ToolCall, 'id'>[]): ToolCall[] {
+    createToolCalls(calls: (Omit<ToolCall, 'id'> & { id?: string })[]): ToolCall[] {
       return driver.transaction(() =>
         calls.map((c) => {
-          const record: ToolCall = ToolCallSchema.parse({ ...c, id: ids.toolCall() });
+          const record: ToolCall = ToolCallSchema.parse({ ...c, id: c.id ?? ids.toolCall() });
           insertInto(driver, TC, record);
           return record;
         }),
       );
     },
 
-    createRetrievals(events: Omit<RetrievalEvent, 'id'>[]): RetrievalEvent[] {
+    createRetrievals(events: (Omit<RetrievalEvent, 'id'> & { id?: string })[]): RetrievalEvent[] {
       return driver.transaction(() =>
         events.map((e) => {
-          const record: RetrievalEvent = RetrievalEventSchema.parse({ ...e, id: ids.retrieval() });
+          const record: RetrievalEvent = RetrievalEventSchema.parse({ ...e, id: e.id ?? ids.retrieval() });
           insertInto(driver, RV, record);
           return record;
         }),
       );
+    },
+
+    /**
+     * 一次性落整份 Trace 证据（一个事务）。
+     * steps ↔ model/tool/retrieval 互相引用（外键延迟到 commit 校验），
+     * 因此必须同事务写入，否则会出现「引用了尚未存在/已被回滚的行」。
+     */
+    createBundle(bundle: {
+      trace: Omit<Trace, 'id' | 'createdAt'> & { id?: string; createdAt?: string };
+      steps: (Omit<TraceStep, 'id'> & { id?: string })[];
+      modelCalls: (Omit<ModelCall, 'id'> & { id?: string })[];
+      toolCalls: (Omit<ToolCall, 'id'> & { id?: string })[];
+      retrievals: (Omit<RetrievalEvent, 'id'> & { id?: string })[];
+    }): Trace {
+      return driver.transaction(() => {
+        const trace = repo.createTrace(bundle.trace);
+        if (bundle.modelCalls.length > 0) repo.createModelCalls(bundle.modelCalls);
+        if (bundle.toolCalls.length > 0) repo.createToolCalls(bundle.toolCalls);
+        if (bundle.retrievals.length > 0) repo.createRetrievals(bundle.retrievals);
+        if (bundle.steps.length > 0) repo.createSteps(bundle.steps);
+        return trace;
+      });
     },
 
     getTrace(id: string): Trace | undefined {
