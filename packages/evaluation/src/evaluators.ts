@@ -1,5 +1,4 @@
 import {
-  FAILURE_TAXONOMY,
   validateSchemaLite,
   type EvaluationStatus,
   type EvaluatorDescriptor,
@@ -882,13 +881,3 @@ export function describeEvaluators(): EvaluatorDescriptor[] {
   }));
 }
 
-export function defaultSeverityForCategory(category: Evaluator['category']): Evaluator['severity'] {
-  switch (category) {
-    case 'safety':
-      return 'critical';
-    case 'process':
-      return 'major';
-    default:
-      return FAILURE_TAXONOMY.unknown.defaultSeverity === 'minor' ? 'major' : 'major';
-  }
-}

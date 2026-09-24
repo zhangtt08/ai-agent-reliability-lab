@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, download, fmtMs, fmtPercent, fmtTime, METRIC_DIRECTION_LABEL } from '../api';
 import { useData, usePolling } from '../hooks';
 import { Badge, Bar, CaseLink, Card, ErrorNote, Json, Loading, PageHeader, Stat, Table } from '../components/ui';
@@ -81,18 +81,20 @@ export default function RunDetail() {
   const [priorityFilter, setPriorityFilter] = useState('');
   const [query, setQuery] = useState('');
 
-  const isRunning = true; // 由 job 状态决定
   const { data, error, loading, reload } = useData<RunDetail>(`/runs/${id}`);
-  const { data: polled } = usePolling<{ status: string }>(`/runs/${id}`, 2000, isRunning && data?.run.status === 'running');
+  // 仅在 run 处于 running（或尚未拿到首帧数据）时轮询；completed 后停止，避免无意义请求
+  const { data: polled } = usePolling<{ status: string }>(`/runs/${id}`, 2000, !data || data.run.status === 'running');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   if (loading) return <Loading />;
   if (error) return <ErrorNote message={error} />;
   if (!data) return null;
-  if (polled && polled.status === 'running' && data.run.status === 'running') {
-    // 轮询中：保持展示当前数据即可
-  }
+  const polledStatusChanged = Boolean(polled && polled.status !== data.run.status);
+  useEffect(() => {
+    // 轮询发现状态变化（如 running → completed）：刷新完整详情
+    if (polledStatusChanged) reload();
+  }, [polledStatusChanged, reload]);
 
   const cases = data.caseRuns.filter((c) => {
     if (statusFilter && c.status !== statusFilter) return false;

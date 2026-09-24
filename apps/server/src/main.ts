@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './api/routes';
-import { defaultDatabasePath } from '@arl/persistence';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env['ARL_PORT'] ?? 8787);
@@ -34,5 +33,3 @@ process.on('SIGINT', () => {
   store.close();
   process.exit(0);
 });
-
-void defaultDatabasePath;

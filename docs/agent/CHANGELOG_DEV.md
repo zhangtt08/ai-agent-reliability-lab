@@ -50,3 +50,12 @@
 - 集成测试 17 项 + E2E 12 步（复用本机 chromium-1243，截图 10 张）。
 - **修掉的真 bug**：stats 查询用了不存在的 `case_runs.duration_ms`（应为 latency_ms）；人工复核 verdict 与 case status 枚举不一致导致 overridesMachine 误判。
 - 最终验证：tsc 0 error；单测 174/174；集成 17/17；E2E 12/12；dogfood stable 15/15 + 7 类缺陷全检出。
+
+### Self Review（§100）+ Recovery/Handoff Drill（§102/103）
+- 七角色自审发现并修复 3 个真问题：
+  1) `scripts/dev.mjs` 含 TS 语法但被 node 按纯 JS 执行 → `npm run dev` 直接崩（改写为纯 JS，实测双端口恢复）；
+  2) RunDetail 对已完成 run 仍然每 2s 轮询 → 改为仅 running 时轮询、状态变化经 useEffect 刷新；
+  3) `evaluators.ts` 残留一个恒返回 'major' 的无效函数与 `main.ts` 死代码 → 移除。
+- 清理了上一 session 遗留的 8787 端口服务进程（属本 session 自己启动的进程）。
+- Drill 证据落档：`docs/agent/RECOVERY_DRILL.md`（失忆恢复 + 新 Agent 交接均通过，且 Drill 过程中实际暴露并修复了 dev.mjs bug）。
+- 最终交付报告：`docs/agent/FINAL_REPORT.md`。

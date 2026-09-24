@@ -1,20 +1,19 @@
-import { spawn, type ChildProcess } from 'node:child_process';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 /**
  * 本地开发编排：同时起 API（8787）与 Vite（5173）。
- * 不引入 concurrently 这类依赖 —— 用 child_process 就够了。
+ * 注意：本文件必须是纯 JavaScript（.mjs 由 node 直接执行，不经 tsx）。
  */
+import { spawn } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const node = process.execPath;
 const tsxCli = join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 
-const children: ChildProcess[] = [];
+const children = [];
 
-function run(name: string, args: string[], color: string) {
+function run(name, args, color) {
   const child = spawn(node, args, {
     cwd: root,
     env: { ...process.env, FORCE_COLOR: '0' },
@@ -22,17 +21,16 @@ function run(name: string, args: string[], color: string) {
   });
   children.push(child);
   const tag = `${color}[${name}]`;
-  child.stdout?.on('data', (chunk: Buffer) => {
+  child.stdout.on('data', (chunk) => {
     for (const line of chunk.toString().split(/\r?\n/).filter(Boolean)) console.log(`${tag} ${line}`);
   });
-  child.stderr?.on('data', (chunk: Buffer) => {
+  child.stderr.on('data', (chunk) => {
     for (const line of chunk.toString().split(/\r?\n/).filter(Boolean)) console.error(`${tag} ${line}`);
   });
   child.on('exit', (code) => {
     console.log(`${tag} exited with ${code}`);
-    if (code !== 0 && code !== null) {
-      shutdown(code);
-    }
+    // 任一子进程异常退出时整体退出，避免"半死不活"的开发环境
+    if (code !== 0 && code !== null) shutdown(code);
   });
   return child;
 }
